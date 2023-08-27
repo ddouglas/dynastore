@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 package dynastore
 
 import (
@@ -33,6 +32,18 @@ func DynamoDB(ddb *dynamodb.Client) Option {
 func TableName(tableName string) Option {
 	return func(s *Store) {
 		s.tableName = tableName
+	}
+}
+
+func PrimaryKey(key string) Option {
+	return func(s *Store) {
+		s.primaryKey = key
+	}
+}
+
+func RefreshCookies() Option {
+	return func(s *Store) {
+		s.refreshCookies = true
 	}
 }
 

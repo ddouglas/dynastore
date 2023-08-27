@@ -9,7 +9,7 @@ Uses the official AWS library, [github.com/aws/aws-sdk-go-v2/aws](github.com/aws
 ### Installation
 
 ```
-go get github.com/andrewwatson/dynastore@v0.1.0 (current latest tag)
+go get github.com/ddouglas/dynastore@v0.1.0
 ```
 
 ### Environment Variables
@@ -28,23 +28,7 @@ Alternately, AWS settings can be specified using Options:
 * ```dynastore.AWSConfig(*aws.Config)``` 
 * ```dynastore.DynamoDB(*dynamodb.DynamoDB)```
 
-### Tables
 
-dynastore provides a utility to create/delete the dynamodb table.
-
-#### Create Table
-
-```
-dynastore -table your-table-name -read 5 -write 5 
-```
-
-#### Delete Table
-
-Use the -delete flag to indicate the tables should be deleted instead.
-
-```
-dynastore -table your-table-name -delete 
-```
 
 ## Example
 

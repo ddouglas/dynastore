@@ -11,15 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-package dynastore_test
+package dynastore
 
 import (
 	"context"
 	"net/http"
 	"testing"
 
-	"github.com/andrewwatson/dynastore"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 
@@ -27,7 +25,7 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-func SetupStore() (*dynastore.Store, error) {
+func SetupStore() (*Store, error) {
 
 	tableName := "session"
 
@@ -40,7 +38,7 @@ func SetupStore() (*dynastore.Store, error) {
 	}
 
 	svc := dynamodb.NewFromConfig(cfg)
-	store, err := dynastore.New(tableName, svc)
+	store, err := New(svc, TableName(tableName))
 
 	return store, err
 }
@@ -121,9 +119,7 @@ func (f FakeResponseWriter) Write([]byte) (int, error) {
 	return 0, nil
 }
 
-func (f FakeResponseWriter) WriteHeader(int) {
-	return
-}
+func (f FakeResponseWriter) WriteHeader(int) {}
 
 // func TestLifecycle(t *testing.T) {
 // 	hashKey := securecookie.GenerateRandomKey(64)

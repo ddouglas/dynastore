@@ -11,13 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 package dynastore
 
 import (
 	"context"
 	"encoding/base32"
-	"errors"
 	"net/http"
 	"strings"
 
@@ -30,29 +28,37 @@ import (
 )
 
 const (
+	DefaultTableName = "sessions"
+
+	DefaultPrimaryKey = "id"
 
 	// DefaultTTLField contains the default name of the ttl field
 	DefaultTTLField = "ttl"
 )
 
-const (
-	idField      = "id"
-	valuesField  = "values"
-	optionsField = "options"
-)
-
-var (
-	errNotFound         = errors.New("session not found")
-	errMalformedSession = errors.New("malformed session data")
-	errEncodeFailed     = errors.New("failed to encode data")
-	errDecodeFailed     = errors.New("failed to decode data")
-)
-
 // Store provides an implementation of the gorilla sessions.Store interface backed by DynamoDB
 type Store struct {
-	tableName string
-	ddb       *dynamodb.Client
-	options   sessions.Options
+	tableName      string
+	primaryKey     string
+	refreshCookies bool
+
+	ddb     *dynamodb.Client
+	options sessions.Options
+}
+
+// New instantiates a new Store that implements gorilla's sessions.Store interface
+func New(client *dynamodb.Client, opts ...Option) (*Store, error) {
+	store := &Store{
+		ddb:        client,
+		tableName:  DefaultTableName,
+		primaryKey: DefaultPrimaryKey,
+	}
+
+	for _, opt := range opts {
+		opt(store)
+	}
+
+	return store, nil
 }
 
 // Get should return a cached session.
@@ -100,14 +106,18 @@ func (store *Store) Save(req *http.Request, w http.ResponseWriter, session *sess
 		return store.Delete(req.Context(), session.ID)
 	}
 
-	if !session.IsNew {
-		// no need to set cookies if they already exist
-		return nil
+	if store.canSetCookie(session) {
+		cookie := newCookie(session, session.Name(), session.ID)
+		http.SetCookie(w, cookie)
 	}
 
 	cookie := newCookie(session, session.Name(), session.ID)
 	http.SetCookie(w, cookie)
 	return nil
+}
+
+func (store *Store) canSetCookie(session *sessions.Session) bool {
+	return session.IsNew || store.refreshCookies
 }
 
 func newCookie(session *sessions.Session, name, value string) *http.Cookie {
@@ -127,29 +137,15 @@ func newCookie(session *sessions.Session, name, value string) *http.Cookie {
 	return cookie
 }
 
-// New instantiates a new Store that implements gorilla's sessions.Store interface
-func New(tablename string, client *dynamodb.Client, opts ...Option) (*Store, error) {
-	store := &Store{
-		ddb:       client,
-		tableName: tablename,
-	}
-
-	for _, opt := range opts {
-		opt(store)
-	}
-
-	return store, nil
-}
-
 func (store *Store) Persist(ctx context.Context, name string, session *sessions.Session) error {
 
-	session.Values["id"] = session.ID
+	session.Values[store.primaryKey] = session.ID
 
 	itemMap := make(map[string]types.AttributeValue)
 	for i, v := range session.Values {
 		itemMap[i.(string)] = &types.AttributeValueMemberS{Value: v.(string)}
 	}
-	// itemMap["id"] = &types.AttributeValueMemberS{Value: session.ID}
+
 	_, err := store.ddb.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(store.tableName),
 		Item:      itemMap,
@@ -163,7 +159,7 @@ func (store *Store) Delete(ctx context.Context, id string) error {
 	_, err := store.ddb.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: aws.String(store.tableName),
 		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberS{Value: id},
+			store.primaryKey: &types.AttributeValueMemberS{Value: id},
 		},
 	})
 
@@ -177,7 +173,7 @@ func (store *Store) Load(ctx context.Context, value string, session *sessions.Se
 	out, err := store.ddb.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(store.tableName),
 		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberS{Value: value},
+			store.primaryKey: &types.AttributeValueMemberS{Value: value},
 		},
 	})
 
