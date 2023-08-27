@@ -141,7 +141,14 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 
 	itemMap := make(map[string]types.AttributeValue)
 	for i, v := range session.Values {
-		itemMap[i.(string)] = &types.AttributeValueMemberS{Value: v.(string)}
+
+		switch vv := v.(type) {
+		case types.AttributeValue:
+			itemMap[i.(string)] = vv
+		default:
+			itemMap[i.(string)] = &types.AttributeValueMemberS{Value: vv.(string)}
+		}
+
 	}
 
 	_, err := store.ddb.PutItem(ctx, &dynamodb.PutItemInput{
