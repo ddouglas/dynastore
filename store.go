@@ -111,8 +111,6 @@ func (store *Store) Save(req *http.Request, w http.ResponseWriter, session *sess
 		http.SetCookie(w, cookie)
 	}
 
-	cookie := newCookie(session, session.Name(), session.ID)
-	http.SetCookie(w, cookie)
 	return nil
 }
 
