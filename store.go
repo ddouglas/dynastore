@@ -16,6 +16,7 @@ package dynastore
 import (
 	"context"
 	"encoding/base32"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	av "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )
@@ -139,21 +142,14 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 
 	session.Values[store.primaryKey] = session.ID
 
-	itemMap := make(map[string]types.AttributeValue)
-	for i, v := range session.Values {
-
-		switch vv := v.(type) {
-		case types.AttributeValue:
-			itemMap[i.(string)] = vv
-		default:
-			itemMap[i.(string)] = &types.AttributeValueMemberS{Value: vv.(string)}
-		}
-
+	items, err := av.MarshalMap(session.Values)
+	if err != nil {
+		return fmt.Errorf("failed marshall session for dynamodb: %w", err)
 	}
 
-	_, err := store.ddb.PutItem(ctx, &dynamodb.PutItemInput{
+	_, err = store.ddb.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(store.tableName),
-		Item:      itemMap,
+		Item:      items,
 	})
 
 	return err
@@ -186,8 +182,10 @@ func (store *Store) Load(ctx context.Context, value string, session *sessions.Se
 		return err
 	}
 
-	for i, v := range out.Item {
-		session.Values[i] = v
-	}
+	err = attributevalue.UnmarshalMap(out.Item, &session.Values)
+
+	// for i, v := range out.Item {
+	// 	session.Values[i] = v
+	// }
 	return err
 }
