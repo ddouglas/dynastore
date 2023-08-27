@@ -1,6 +1,6 @@
 module github.com/ddouglas/dynastore
 
-go 1.17
+go 1.20
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.21.0

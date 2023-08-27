@@ -23,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	av "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -143,9 +142,9 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 
 	session.Values[store.primaryKey] = session.ID
 
-	spew.Dump(session.Values)
+	v := convertToMapStringString(session.Values)
 
-	items, err := av.MarshalMap(session.Values)
+	items, err := av.MarshalMap(v)
 	if err != nil {
 		return fmt.Errorf("failed marshall session for dynamodb: %w", err)
 	}
@@ -156,6 +155,19 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 	})
 
 	return err
+}
+
+func convertToMapStringString(in map[any]any) map[string]any {
+	out := make(map[string]any, 0)
+	for i, v := range in {
+		if _, ok := i.(string); !ok {
+			continue
+		}
+
+		out[i.(string)] = v
+	}
+
+	return out
 }
 
 func (store *Store) Delete(ctx context.Context, id string) error {
