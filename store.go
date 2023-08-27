@@ -142,7 +142,7 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 
 	session.Values[store.primaryKey] = session.ID
 
-	v := convertToMapStringString(session.Values)
+	v := convertToMapStringAny(session.Values)
 
 	items, err := av.MarshalMap(v)
 	if err != nil {
@@ -157,10 +157,11 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 	return err
 }
 
-func convertToMapStringString(in map[any]any) map[string]any {
+func convertToMapStringAny(in map[any]any) map[string]any {
 	out := make(map[string]any, 0)
 	for i, v := range in {
 		if _, ok := i.(string); !ok {
+			fmt.Println("convertToMapStringAny :: Skipping %s", i)
 			continue
 		}
 
