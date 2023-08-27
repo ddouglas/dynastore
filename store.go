@@ -39,6 +39,10 @@ const (
 	DefaultTTLField = "ttl"
 )
 
+var (
+	errStateNotFound = fmt.Errorf("state missing or deleted from store")
+)
+
 // Store provides an implementation of the gorilla sessions.Store interface backed by DynamoDB
 type Store struct {
 	tableName      string
@@ -161,7 +165,6 @@ func convertToMapStringAny(in map[any]any) map[string]any {
 	out := make(map[string]any, 0)
 	for i, v := range in {
 		if _, ok := i.(string); !ok {
-			fmt.Println("convertToMapStringAny :: Skipping %s", i)
 			continue
 		}
 
@@ -187,7 +190,7 @@ func (store *Store) Delete(ctx context.Context, id string) error {
 // True is returned if there is a session data in the database.
 func (store *Store) Load(ctx context.Context, value string, session *sessions.Session) error {
 
-	out, err := store.ddb.GetItem(ctx, &dynamodb.GetItemInput{
+	result, err := store.ddb.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(store.tableName),
 		Key: map[string]types.AttributeValue{
 			store.primaryKey: &types.AttributeValueMemberS{Value: value},
@@ -198,10 +201,24 @@ func (store *Store) Load(ctx context.Context, value string, session *sessions.Se
 		return err
 	}
 
-	err = attributevalue.UnmarshalMap(out.Item, &session.Values)
+	if result.Item == nil {
+		return errStateNotFound
+	}
 
-	// for i, v := range out.Item {
-	// 	session.Values[i] = v
-	// }
+	out := make(map[string]any, 0)
+
+	err = attributevalue.UnmarshalMap(result.Item, &out)
+	if err != nil {
+		return err
+	}
+
+	for i, v := range out {
+		session.Values[i] = v
+	}
+
+	if _, ok := session.Values[store.primaryKey]; ok {
+		session.ID = session.Values[store.primaryKey].(string)
+	}
+
 	return err
 }
