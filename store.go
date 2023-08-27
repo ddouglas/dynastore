@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	av "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -141,6 +142,8 @@ func newCookie(session *sessions.Session, name, value string) *http.Cookie {
 func (store *Store) Persist(ctx context.Context, name string, session *sessions.Session) error {
 
 	session.Values[store.primaryKey] = session.ID
+
+	spew.Dump(session.Values)
 
 	items, err := av.MarshalMap(session.Values)
 	if err != nil {
