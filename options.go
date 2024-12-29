@@ -88,3 +88,10 @@ func HTTPOnly() Option {
 		s.options.HttpOnly = true
 	}
 }
+
+// TTL enables setting a ttl key on the session prior to saving to dynamodb
+func TTLEnabled() Option {
+	return func(s *Store) {
+		s.enableTTL = true
+	}
+}

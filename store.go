@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -48,6 +49,7 @@ type Store struct {
 	tableName      string
 	primaryKey     string
 	refreshCookies bool
+	enableTTL      bool
 
 	ddb     *dynamodb.Client
 	options sessions.Options
@@ -147,6 +149,10 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 	session.Values[store.primaryKey] = session.ID
 
 	v := convertToMapStringAny(session.Values)
+
+	if store.enableTTL {
+		v[DefaultTTLField] = time.Now().Add(time.Second * time.Duration(store.options.MaxAge))
+	}
 
 	items, err := av.MarshalMap(v)
 	if err != nil {
