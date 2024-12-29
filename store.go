@@ -57,7 +57,7 @@ type Store struct {
 }
 
 // New instantiates a new Store that implements gorilla's sessions.Store interface
-func New(client *dynamodb.Client, opts ...Option) (*Store, error) {
+func New(client *dynamodb.Client, opts ...Option) *Store {
 	store := &Store{
 		ddb:        client,
 		tableName:  DefaultTableName,
@@ -69,7 +69,7 @@ func New(client *dynamodb.Client, opts ...Option) (*Store, error) {
 		opt(store)
 	}
 
-	return store, nil
+	return store
 }
 
 // Get should return a cached session.

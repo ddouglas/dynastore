@@ -38,7 +38,7 @@ func SetupStore() (*Store, error) {
 	}
 
 	svc := dynamodb.NewFromConfig(cfg)
-	store, err := New(svc, TableName(tableName))
+	store := New(svc, TableName(tableName))
 
 	return store, err
 }
