@@ -153,7 +153,7 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 	v := convertToMapStringAny(session.Values)
 
 	if store.enableTTL {
-		v[store.ttlKey] = time.Now().Add(time.Second * time.Duration(store.options.MaxAge))
+		v[store.ttlKey] = time.Now().Add(time.Second * time.Duration(store.options.MaxAge)).Unix()
 	}
 
 	items, err := av.MarshalMap(v)
