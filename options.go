@@ -95,3 +95,9 @@ func TTLEnabled() Option {
 		s.enableTTL = true
 	}
 }
+
+func TTLKey(key string) Option {
+	return func(s *Store) {
+		s.ttlKey = key
+	}
+}

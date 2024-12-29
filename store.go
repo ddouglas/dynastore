@@ -50,6 +50,7 @@ type Store struct {
 	primaryKey     string
 	refreshCookies bool
 	enableTTL      bool
+	ttlKey         string
 
 	ddb     *dynamodb.Client
 	options sessions.Options
@@ -61,6 +62,7 @@ func New(client *dynamodb.Client, opts ...Option) (*Store, error) {
 		ddb:        client,
 		tableName:  DefaultTableName,
 		primaryKey: DefaultPrimaryKey,
+		ttlKey:     DefaultTTLField,
 	}
 
 	for _, opt := range opts {
@@ -151,7 +153,7 @@ func (store *Store) Persist(ctx context.Context, name string, session *sessions.
 	v := convertToMapStringAny(session.Values)
 
 	if store.enableTTL {
-		v[DefaultTTLField] = time.Now().Add(time.Second * time.Duration(store.options.MaxAge))
+		v[store.ttlKey] = time.Now().Add(time.Second * time.Duration(store.options.MaxAge))
 	}
 
 	items, err := av.MarshalMap(v)
